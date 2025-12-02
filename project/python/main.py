@@ -5,6 +5,7 @@ import os
 import time
 from websocket_server import WebSocketServer
 from pose_tracking import PoseTracker
+from hand_tracking import HandTracker
 from visual_logic import VisualLogic
 from ai_visual_generation import AIVisualGenerator
 
@@ -16,11 +17,13 @@ async def main():
     # Initialize components
     server = WebSocketServer(port=8765)
     tracker = PoseTracker()
+    hand_tracker = HandTracker(show_window=False)  # Disable window to avoid conflicts
     logic = VisualLogic()
     ai_gen = AIVisualGenerator(output_dir="../web/visuals/textures")
 
     # Start components
     tracker.start()
+    hand_tracker.start()  # Start hand tracking
     ai_gen.start()
     
     # Start WebSocket server in background
@@ -35,6 +38,7 @@ async def main():
         while True:
             # 1. Get Pose Data
             pose_data = tracker.get_pose_data()
+            hands_data = hand_tracker.get_hands_data()  # Get hand gestures
             current_time = time.time()
             
             if pose_data:
@@ -48,47 +52,15 @@ async def main():
                         prefix = cmd["params"]["type"]
                         ai_gen.request_generation(prompt, prefix)
 
-                # 4. Auto-Generate Artistic Background (Periodic) - DISABLED
-                # if current_time - last_gen_time > gen_interval:
-                #     frame = tracker.get_current_frame()
-                #     if frame is not None:
-                #         # Convert numpy array (RGB) to PIL Image
-                #         from PIL import Image
-                #         pil_image = Image.fromarray(frame)
-                #         
-                #         # Request generation
-                #         prompt = "abstract artistic masterpiece, neon colors, flowing lines, cyberpunk style, high contrast, 8k"
-                #         ai_gen.request_generation(prompt, "art_bg", source_image=pil_image)
-                #         
-                #         last_gen_time = current_time
-                #         
-                #         # Notify client that we are processing
-                #         await server.broadcast({
-                #             "type": "status",
-                #             "message": "Capturing reality..."
-                #         })
-
-                # 5. Check for completed generations - DISABLED
-                # try:
-                #     while True:
-                #         result = ai_gen.result_queue.get_nowait()
-                #         if result["type"] == "texture_ready":
-                #             await server.broadcast({
-                #                 "type": "texture_ready",
-                #                 "url": f"visuals/textures/{result['filename']}",
-                #                 "prefix": result["prefix"]
-                #             })
-                # except:
-                #     pass
-
-                # 6. Prepare Message
+                # 4. Prepare Message with gesture data
                 message = {
                     "type": "update",
                     "pose": pose_data,
+                    "hands": hands_data,  # Include hand gesture data
                     "commands": commands
                 }
                 
-                # 7. Broadcast to Clients
+                # 5. Broadcast to Clients
                 await server.broadcast(message)
 
             # Control loop rate (approx 60 FPS)
@@ -98,8 +70,8 @@ async def main():
         logger.info("Main loop cancelled.")
     finally:
         tracker.stop()
+        hand_tracker.stop()  # Stop hand tracking
         ai_gen.stop()
-        # server_task.cancel() # Server handles its own cleanup usually
 
 if __name__ == "__main__":
     try:

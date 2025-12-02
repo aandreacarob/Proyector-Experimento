@@ -48,11 +48,6 @@ const sketch = (p) => {
         loadingEl = document.getElementById('loading');
         debugPanel = document.getElementById('debug-panel');
 
-        // Hide loading screen after 2 seconds regardless of connection
-        setTimeout(() => {
-            if (loadingEl) loadingEl.style.display = 'none';
-        }, 2000);
-
         // Connect WS
         connectWebSocket();
     };
@@ -157,6 +152,18 @@ function connectWebSocket() {
 function handleUpdate(data) {
     lastPose = data.pose;
     const commands = data.commands;
+    const handsData = data.hands;
+
+    // Update trail colors based on hand gestures
+    if (handsData && handsData.hands) {
+        handsData.hands.forEach(hand => {
+            if (hand.hand === 'Left') {
+                trails.setGesture(hand.gesture);
+            } else if (hand.hand === 'Right') {
+                trailsRight.setGesture(hand.gesture);
+            }
+        });
+    }
 
     if (commands && particles && aura) {
         commands.forEach(cmd => {

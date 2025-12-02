@@ -5,6 +5,11 @@ export class TrailEffect {
         this.maxPoints = 180; // 3 seconds at 60 FPS
         this.noiseOffset = 0;
         this.colorScheme = colorScheme;
+        this.currentGesture = null; // Track current gesture
+    }
+
+    setGesture(gesture) {
+        this.currentGesture = gesture;
     }
 
     updateTarget(x, y) {
@@ -56,32 +61,83 @@ export class TrailEffect {
         this.p.blendMode(this.p.ADD);
         this.p.noStroke();
 
-        // Define color schemes
+        // Define color schemes based on gesture
         let colors;
-        if (this.colorScheme === 'magenta') {
-            // Magenta/Pink scheme for right hand
+
+        // Override color scheme based on gesture
+        if (this.currentGesture === 'fist') {
+            // Red/Orange for fist
             colors = [
-                this.p.color(255, 0, 200, 3),   // Very wide, very faint magenta
-                this.p.color(255, 0, 180, 5),   // Wide magenta haze
-                this.p.color(255, 0, 150, 8),   // Mid magenta
-                this.p.color(255, 100, 200, 12), // Pink outer glow
-                this.p.color(255, 150, 220, 20), // Pink mid glow
-                this.p.color(255, 180, 255, 40), // Bright pink
-                this.p.color(255, 200, 255, 100), // Near-white pink
-                this.p.color(255, 255, 255, 255)  // White core
+                this.p.color(255, 0, 0, 3),     // Red outer
+                this.p.color(255, 50, 0, 5),
+                this.p.color(255, 100, 0, 8),
+                this.p.color(255, 150, 0, 12),  // Orange
+                this.p.color(255, 200, 0, 20),
+                this.p.color(255, 220, 100, 40),
+                this.p.color(255, 240, 150, 100),
+                this.p.color(255, 255, 255, 255)
+            ];
+        } else if (this.currentGesture === 'pointing') {
+            // Yellow/Gold for pointing
+            colors = [
+                this.p.color(200, 200, 0, 3),
+                this.p.color(220, 220, 0, 5),
+                this.p.color(240, 240, 0, 8),
+                this.p.color(255, 255, 0, 12),
+                this.p.color(255, 255, 100, 20),
+                this.p.color(255, 255, 150, 40),
+                this.p.color(255, 255, 200, 100),
+                this.p.color(255, 255, 255, 255)
+            ];
+        } else if (this.currentGesture === 'open_palm') {
+            // Green/Emerald for open palm
+            colors = [
+                this.p.color(0, 200, 100, 3),
+                this.p.color(0, 220, 120, 5),
+                this.p.color(0, 240, 140, 8),
+                this.p.color(50, 255, 150, 12),
+                this.p.color(100, 255, 180, 20),
+                this.p.color(150, 255, 200, 40),
+                this.p.color(200, 255, 230, 100),
+                this.p.color(255, 255, 255, 255)
+            ];
+        } else if (this.currentGesture === 'bunny') {
+            // Pink/Blue for bunny ears 🐰
+            colors = [
+                this.p.color(255, 0, 200, 3),   // Pink outer
+                this.p.color(255, 50, 220, 5),
+                this.p.color(255, 100, 240, 8),
+                this.p.color(200, 100, 255, 12), // Purple-pink
+                this.p.color(180, 150, 255, 20), // Light purple
+                this.p.color(200, 180, 255, 40),
+                this.p.color(230, 200, 255, 100),
+                this.p.color(255, 255, 255, 255)
             ];
         } else {
-            // Cyan scheme for left hand (default)
-            colors = [
-                this.p.color(200, 0, 255, 3),   // Very wide, very faint purple
-                this.p.color(180, 0, 255, 5),   // Wide purple haze
-                this.p.color(150, 0, 255, 8),   // Mid purple
-                this.p.color(0, 180, 255, 12),  // Cyan outer glow
-                this.p.color(0, 220, 255, 20),  // Cyan mid glow
-                this.p.color(0, 255, 255, 40),  // Bright cyan
-                this.p.color(200, 230, 255, 100), // Near-white inner
-                this.p.color(255, 255, 255, 255)  // White core
-            ];
+            // Default colors based on colorScheme
+            if (this.colorScheme === 'magenta') {
+                colors = [
+                    this.p.color(255, 0, 200, 3),
+                    this.p.color(255, 0, 180, 5),
+                    this.p.color(255, 0, 150, 8),
+                    this.p.color(255, 100, 200, 12),
+                    this.p.color(255, 150, 220, 20),
+                    this.p.color(255, 180, 255, 40),
+                    this.p.color(255, 200, 255, 100),
+                    this.p.color(255, 255, 255, 255)
+                ];
+            } else {
+                colors = [
+                    this.p.color(200, 0, 255, 3),
+                    this.p.color(180, 0, 255, 5),
+                    this.p.color(150, 0, 255, 8),
+                    this.p.color(0, 180, 255, 12),
+                    this.p.color(0, 220, 255, 20),
+                    this.p.color(0, 255, 255, 40),
+                    this.p.color(200, 230, 255, 100),
+                    this.p.color(255, 255, 255, 255)
+                ];
+            }
         }
 
         // Draw layers with corresponding widths
