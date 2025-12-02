@@ -1,0 +1,9 @@
+websockets
+mediapipe
+opencv-python
+numpy
+google-generativeai
+openai
+python-dotenv
+Pillow
+requests
