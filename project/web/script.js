@@ -6,6 +6,7 @@ import { RibbonEffect } from './visuals/ribbons.js';
 import { RuneEffect } from './visuals/runes.js';
 import { ArtisticLayer } from './visuals/artistic_layer.js';
 import { NightSky } from './visuals/night_sky.js';
+import { BodySilhouette } from './visuals/body_silhouette.js';
 
 // Configuration
 const WS_URL = 'ws://localhost:8765';
@@ -13,7 +14,7 @@ const WS_URL = 'ws://localhost:8765';
 // State
 let socket;
 let lastPose = null;
-let particles, trails, trailsRight, aura, sparkles, ribbons, runes, artisticLayer, nightSky;
+let particles, trails, trailsRight, aura, sparkles, ribbons, runes, artisticLayer, nightSky, bodySilhouette;
 let statusEl, fpsEl, loadingEl, debugPanel;
 let canvas;
 let lastSparkleTime = 0;
@@ -35,7 +36,7 @@ const HISTORY_LENGTH = 10;
 // but since we are in a module, we need to attach to window or use instance mode.
 // Instance mode is cleaner for modules.
 
-const sketch = (p) => {
+export const s = (p) => {
 
     p.setup = () => {
         canvas = p.createCanvas(window.innerWidth, window.innerHeight);
@@ -53,6 +54,7 @@ const sketch = (p) => {
         ribbons = new RibbonEffect(p);
         runes = new RuneEffect(p);
         artisticLayer = new ArtisticLayer(p);
+        bodySilhouette = new BodySilhouette(p);
 
         // UI Elements
         statusEl = document.getElementById('status');
@@ -89,14 +91,17 @@ const sketch = (p) => {
             const shoulderX = (lastPose.left_shoulder[0] + lastPose.right_shoulder[0]) / 2 * p.width;
             const shoulderY = (lastPose.left_shoulder[1] + lastPose.right_shoulder[1]) / 2 * p.height;
 
+            // Calculate shoulder width for proximity detection
+            const shoulderWidth = Math.abs(lastPose.right_shoulder[0] - lastPose.left_shoulder[0]) * p.width;
+
             // Update both trails
             trails.updateTarget(leftX, leftY);        // Left hand - cyan
             trailsRight.updateTarget(rightX, rightY); // Right hand - magenta
 
-            aura.updatePosition(shoulderX, shoulderY);
+            aura.updatePosition(shoulderX, shoulderY, shoulderWidth);
 
             // Use body center for audio control (more stable than hands)
-            updateAudioVolume(shoulderX, shoulderY);
+            // updateAudioVolume(shoulderX, shoulderY);
 
             // ribbons.update(rightX, rightY); // DISABLED - was causing double trail
 
@@ -110,6 +115,7 @@ const sketch = (p) => {
 
         // Update and display all effects
         aura.display();
+        if (lastPose) bodySilhouette.display(lastPose); // Draw body silhouette
         // ribbons.display(); // DISABLED - was causing double trail when combined with sparkles
         trails.display();        // Left hand trail (cold colors)
         trailsRight.display();   // Right hand trail (warm colors)
@@ -117,8 +123,8 @@ const sketch = (p) => {
         particles.display();
         sparkles.update();
         sparkles.display();
-        // runes.update();       // DISABLED - pentagrams in center
-        // runes.display();      // DISABLED - pentagrams in center
+        runes.update();       // DISABLED - pentagrams in center
+        runes.display();      // DISABLED - pentagrams in center
 
         // FPS
         if (p.frameCount % 30 === 0) {
@@ -138,7 +144,7 @@ const sketch = (p) => {
 };
 
 // Start p5
-new p5(sketch);
+new p5(s);
 
 function connectWebSocket() {
     socket = new WebSocket(WS_URL);
