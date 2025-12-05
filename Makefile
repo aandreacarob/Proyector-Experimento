@@ -14,6 +14,8 @@ start:
 	@sleep 1
 	@echo "Starting camera viewer..."
 	@cd project/python && OPENCV_AVFOUNDATION_SKIP_AUTH=1 .venv/bin/python camera_viewer.py > ../../logs/viewer.log 2>&1 & echo $$! > ../../.viewer.pid
+	@echo "☕ Starting caffeinate (prevent sleep)..."
+	@caffeinate -i -w `cat ../../.backend.pid` & echo $$! > ../../.caffeinate.pid
 	@echo ""
 	@echo "✅ All servers started!"
 	@echo "   - Backend: http://localhost:8765 (WebSocket)"
@@ -58,6 +60,11 @@ stop:
 		rm .viewer.pid; \
 		echo "   ✓ Camera viewer (from make) stopped"; \
 	fi
+	@if [ -f .caffeinate.pid ]; then \
+		kill -9 `cat .caffeinate.pid` 2>/dev/null || true; \
+		rm .caffeinate.pid; \
+		echo "   ✓ Caffeinate (prevent sleep) stopped"; \
+	fi
 	@# Strategy 2: Kill by process name pattern
 	@pkill -9 -f "Proyector-Experimento.*main.py" 2>/dev/null && echo "   ✓ Killed main.py processes" || true
 	@pkill -9 -f "Proyector-Experimento.*camera_viewer.py" 2>/dev/null && echo "   ✓ Killed camera_viewer.py processes" || true
@@ -97,7 +104,7 @@ status:
 clean:
 	@echo "🧹 Cleaning up..."
 	@rm -rf logs
-	@rm -f .backend.pid .web.pid .viewer.pid
+	@rm -f .backend.pid .web.pid .viewer.pid .caffeinate.pid
 	@echo "✅ Cleanup complete"
 
 # Show help

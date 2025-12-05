@@ -26,10 +26,10 @@ let targetVolume = 0;
 let currentVolume = 0;
 let lastMovementTime = 0;
 let movementHistory = [];
-const MOVEMENT_THRESHOLD = 15;   // Pixels for body center (lowered)
+const MOVEMENT_THRESHOLD = 5;    // Pixels - very sensitive
 const SILENCE_DELAY = 500;       // 0.5 seconds before fade out
 const MAX_VOLUME = 0.7;
-const HISTORY_LENGTH = 10;
+const HISTORY_LENGTH = 15;       // Longer history for better smoothing
 
 // Global p5 instance mode or global mode? 
 // Let's use global mode for simplicity as it's common with p5, 
@@ -101,9 +101,7 @@ export const s = (p) => {
             aura.updatePosition(shoulderX, shoulderY, shoulderWidth);
 
             // Use body center for audio control (more stable than hands)
-            // updateAudioVolume(shoulderX, shoulderY);
-
-            // ribbons.update(rightX, rightY); // DISABLED - was causing double trail
+            // updateAudioVolume(shoulderX, shoulderY); // Moved outside loop
 
             // Emit sparkles periodically while moving
             if (p.millis() - lastSparkleTime > 100) {
@@ -111,6 +109,16 @@ export const s = (p) => {
                 sparkles.emit(leftX, leftY, 3);
                 lastSparkleTime = p.millis();
             }
+        } else {
+            // No pose detected - update audio with no movement
+            updateAudioVolume(0, 0, false);
+        }
+
+        // Update audio volume (if pose exists, use shoulder coords, otherwise 0)
+        if (lastPose) {
+            const shoulderX = (lastPose.left_shoulder[0] + lastPose.right_shoulder[0]) / 2 * p.width;
+            const shoulderY = (lastPose.left_shoulder[1] + lastPose.right_shoulder[1]) / 2 * p.height;
+            updateAudioVolume(shoulderX, shoulderY, true);
         }
 
         // Update and display all effects
@@ -123,12 +131,23 @@ export const s = (p) => {
         particles.display();
         sparkles.update();
         sparkles.display();
+
         runes.update();       // DISABLED - pentagrams in center
         runes.display();      // DISABLED - pentagrams in center
 
-        // FPS
-        if (p.frameCount % 30 === 0) {
+        // FPS & Debug Panel Updates
+        if (p.frameCount % 10 === 0) {
             fpsEl.innerText = Math.round(p.frameRate());
+
+            // Update audio debug info if panel is visible
+            if (debugPanel.style.display !== 'none') {
+                document.getElementById('audio-vol').innerText = `${currentVolume.toFixed(2)} / ${targetVolume}`;
+                document.getElementById('audio-move').innerText = `${window.lastAvg?.toFixed(1) || 0} (Thresh: ${MOVEMENT_THRESHOLD})`;
+                document.getElementById('audio-state').innerText = window.isMoving ? "MOVING" : "STILL";
+
+                // Color code state
+                document.getElementById('audio-state').style.color = window.isMoving ? '#0f0' : '#888';
+            }
         }
     };
 
@@ -220,7 +239,43 @@ function handleUpdate(data) {
 /**
  * Smooth audio volume control based on body center movement
  */
-function updateAudioVolume(bodyX, bodyY) {
+function updateAudioVolume(bodyX, bodyY, hasPose = true) {
+    // Calculate movement regardless of audio state
+    let dist = 0;
+
+    if (!hasPose) {
+        // No pose detected -> No movement
+        dist = 0;
+        // Reset last position so next detection counts as movement
+        lastBodyPos = null;
+    } else {
+        // Check body center movement
+        if (lastBodyPos) {
+            dist = Math.hypot(bodyX - lastBodyPos.x, bodyY - lastBodyPos.y);
+        }
+        // Update last position
+        lastBodyPos = { x: bodyX, y: bodyY };
+    }
+
+    // Add to movement history
+    // Ignore very small movements (jitter) completely
+    if (dist < 5) dist = 0;
+
+    movementHistory.push(dist);
+    if (movementHistory.length > HISTORY_LENGTH) {
+        movementHistory.shift();
+    }
+
+    // Average movement over history
+    const avgMovement = movementHistory.reduce((a, b) => a + b, 0) / movementHistory.length;
+    const movementDetected = avgMovement > MOVEMENT_THRESHOLD;
+
+    // Expose for debug ALWAYS
+    window.lastAvg = avgMovement;
+    window.lastDist = dist;
+    window.isMoving = movementDetected;
+
+    // Now check audio state
     if (!cosmicAudio || cosmicAudio.paused) return;
 
     // Initialize volume on first run
@@ -231,25 +286,6 @@ function updateAudioVolume(bodyX, bodyY) {
     }
 
     const now = Date.now();
-    let dist = 0;
-
-    // Check body center movement
-    if (lastBodyPos) {
-        dist = Math.hypot(bodyX - lastBodyPos.x, bodyY - lastBodyPos.y);
-    }
-
-    // Update last position
-    lastBodyPos = { x: bodyX, y: bodyY };
-
-    // Add to movement history
-    movementHistory.push(dist);
-    if (movementHistory.length > HISTORY_LENGTH) {
-        movementHistory.shift();
-    }
-
-    // Average movement over history
-    const avgMovement = movementHistory.reduce((a, b) => a + b, 0) / movementHistory.length;
-    const movementDetected = avgMovement > MOVEMENT_THRESHOLD;
 
     // Update movement time
     if (movementDetected) {
@@ -268,9 +304,4 @@ function updateAudioVolume(bodyX, bodyY) {
     }
 
     cosmicAudio.volume = currentVolume;
-
-    // Debug log
-    if (Math.random() < 0.02) {
-        console.log(`🎵 Vol: ${currentVolume.toFixed(2)} | Avg: ${avgMovement.toFixed(0)} | Moving: ${movementDetected}`);
-    }
 }
