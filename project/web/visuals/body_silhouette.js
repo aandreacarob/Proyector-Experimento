@@ -9,7 +9,7 @@ export class BodySilhouette {
         // Define connections for skeleton
         this.connections = [
             // Torso
-            ['left_shoulder', 'right_shoulder'],
+            // ['left_shoulder', 'right_shoulder'], // Removed shoulder connection (crosses aura)
             ['left_shoulder', 'left_hip'],
             ['right_shoulder', 'right_hip'],
             // ['left_hip', 'right_hip'], // Removed hip connection line

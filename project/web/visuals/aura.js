@@ -3,7 +3,7 @@ export class AuraEffect {
         this.p = p;
         this.x = p.width / 2;
         this.y = p.height / 2;
-        this.width = 50;
+        this.width = 30;
         this.particles = [];
     }
 
