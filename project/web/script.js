@@ -18,6 +18,18 @@ let statusEl, fpsEl, loadingEl, debugPanel;
 let canvas;
 let lastSparkleTime = 0;
 
+// Audio control
+let cosmicAudio = null;
+let lastBodyPos = null;  // Track body center instead of hands
+let targetVolume = 0;
+let currentVolume = 0;
+let lastMovementTime = 0;
+let movementHistory = [];
+const MOVEMENT_THRESHOLD = 15;   // Pixels for body center (lowered)
+const SILENCE_DELAY = 500;       // 0.5 seconds before fade out
+const MAX_VOLUME = 0.7;
+const HISTORY_LENGTH = 10;
+
 // Global p5 instance mode or global mode? 
 // Let's use global mode for simplicity as it's common with p5, 
 // but since we are in a module, we need to attach to window or use instance mode.
@@ -47,6 +59,9 @@ const sketch = (p) => {
         fpsEl = document.getElementById('fps');
         loadingEl = document.getElementById('loading');
         debugPanel = document.getElementById('debug-panel');
+
+        // Get audio element
+        cosmicAudio = document.getElementById('cosmic-audio');
 
         // Connect WS
         connectWebSocket();
@@ -79,6 +94,10 @@ const sketch = (p) => {
             trailsRight.updateTarget(rightX, rightY); // Right hand - magenta
 
             aura.updatePosition(shoulderX, shoulderY);
+
+            // Use body center for audio control (more stable than hands)
+            updateAudioVolume(shoulderX, shoulderY);
+
             // ribbons.update(rightX, rightY); // DISABLED - was causing double trail
 
             // Emit sparkles periodically while moving
@@ -189,5 +208,63 @@ function handleUpdate(data) {
                 );
             }
         });
+    }
+}
+
+/**
+ * Smooth audio volume control based on body center movement
+ */
+function updateAudioVolume(bodyX, bodyY) {
+    if (!cosmicAudio || cosmicAudio.paused) return;
+
+    // Initialize volume on first run
+    if (currentVolume === 0 && cosmicAudio.volume > 0) {
+        currentVolume = cosmicAudio.volume;
+        targetVolume = MAX_VOLUME;
+        lastMovementTime = Date.now();
+    }
+
+    const now = Date.now();
+    let dist = 0;
+
+    // Check body center movement
+    if (lastBodyPos) {
+        dist = Math.hypot(bodyX - lastBodyPos.x, bodyY - lastBodyPos.y);
+    }
+
+    // Update last position
+    lastBodyPos = { x: bodyX, y: bodyY };
+
+    // Add to movement history
+    movementHistory.push(dist);
+    if (movementHistory.length > HISTORY_LENGTH) {
+        movementHistory.shift();
+    }
+
+    // Average movement over history
+    const avgMovement = movementHistory.reduce((a, b) => a + b, 0) / movementHistory.length;
+    const movementDetected = avgMovement > MOVEMENT_THRESHOLD;
+
+    // Update movement time
+    if (movementDetected) {
+        lastMovementTime = now;
+        targetVolume = MAX_VOLUME;
+    } else if (now - lastMovementTime > SILENCE_DELAY) {
+        targetVolume = 0;
+    }
+
+    // Smooth volume transition
+    const fadeSpeed = 0.03;
+    if (currentVolume < targetVolume) {
+        currentVolume = Math.min(currentVolume + fadeSpeed, targetVolume);
+    } else if (currentVolume > targetVolume) {
+        currentVolume = Math.max(currentVolume - fadeSpeed, targetVolume);
+    }
+
+    cosmicAudio.volume = currentVolume;
+
+    // Debug log
+    if (Math.random() < 0.02) {
+        console.log(`🎵 Vol: ${currentVolume.toFixed(2)} | Avg: ${avgMovement.toFixed(0)} | Moving: ${movementDetected}`);
     }
 }

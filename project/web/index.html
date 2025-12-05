@@ -17,11 +17,23 @@
         <p>FPS: <span id="fps">0</span></p>
         <button id="calibrate-btn">Calibrate Projector</button>
     </div>
+
+    <!-- Native Audio Element - more stable -->
+    <audio id="cosmic-audio" loop preload="auto">
+        <source src="assets/astronaut_ambient.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Play Button -->
+    <button id="start-audio-btn"
+        onclick="var a=document.getElementById('cosmic-audio'); a.currentTime=1200; a.volume=0.7; a.play(); window.audioStarted=true; this.style.display='none';">
+        🎵 Play Music
+    </button>
+
     <main>
         <!-- p5.js will inject canvas here -->
     </main>
 
-    <script type="module" src="script.js?v=2"></script>
+    <script type="module" src="script.js?v=3"></script>
 </body>
 
 </html>
