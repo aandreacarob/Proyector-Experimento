@@ -201,10 +201,10 @@ function handleUpdate(data) {
             } else if (cmd.command === 'aura_boost') {
                 aura.setBoost(cmd.params.active);
                 if (cmd.params.active) {
-                    // Spawn rune when aura is boosted
-                    const x = (lastPose.left_shoulder[0] + lastPose.right_shoulder[0]) / 2 * window.innerWidth;
-                    const y = (lastPose.left_shoulder[1] + lastPose.right_shoulder[1]) / 2 * window.innerHeight;
-                    runes.spawn(x, y);
+                    // Spawn rune when aura is boosted - DISABLED
+                    // const x = (lastPose.left_shoulder[0] + lastPose.right_shoulder[0]) / 2 * window.innerWidth;
+                    // const y = (lastPose.left_shoulder[1] + lastPose.right_shoulder[1]) / 2 * window.innerHeight;
+                    // runes.spawn(x, y);
                 }
             } else if (cmd.command === 'generate_texture') {
                 // Add ribbon when generating texture
