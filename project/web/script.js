@@ -79,7 +79,7 @@ const sketch = (p) => {
             trailsRight.updateTarget(rightX, rightY); // Right hand - magenta
 
             aura.updatePosition(shoulderX, shoulderY);
-            ribbons.update(rightX, rightY);
+            // ribbons.update(rightX, rightY); // DISABLED - was causing double trail
 
             // Emit sparkles periodically while moving
             if (p.millis() - lastSparkleTime > 100) {
@@ -91,15 +91,15 @@ const sketch = (p) => {
 
         // Update and display all effects
         aura.display();
-        ribbons.display();
-        trails.display();        // Left hand trail
-        trailsRight.display();   // Right hand trail
+        // ribbons.display(); // DISABLED - was causing double trail when combined with sparkles
+        trails.display();        // Left hand trail (cold colors)
+        trailsRight.display();   // Right hand trail (warm colors)
         particles.update();
         particles.display();
         sparkles.update();
         sparkles.display();
-        runes.update();
-        runes.display();
+        // runes.update();       // DISABLED - pentagrams in center
+        // runes.display();      // DISABLED - pentagrams in center
 
         // FPS
         if (p.frameCount % 30 === 0) {
